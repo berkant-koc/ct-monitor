@@ -1,5 +1,7 @@
 # ct-monitor
 
+[![test](https://github.com/berkant-koc/ct-monitor/actions/workflows/test.yml/badge.svg)](https://github.com/berkant-koc/ct-monitor/actions/workflows/test.yml)
+
 Polls [crt.sh](https://crt.sh) for new TLS certificates issued for a list
 of domains you own, diffs against a local state file, and alerts you on
 any previously-unseen certificate before it appears in the wild.
