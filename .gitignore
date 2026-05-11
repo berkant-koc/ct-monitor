@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+
+# state files (per-deployment, not source)
+*.ct-monitor-state.json
+.ct-monitor-state.json
