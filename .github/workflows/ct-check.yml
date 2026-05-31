@@ -34,7 +34,7 @@ jobs:
         env:
           CT_MONITOR_DOMAINS: berkoc.com
           CT_MONITOR_STATE: ./state.json
-          CT_MONITOR_HTTP_TIMEOUT: '45'
+          CT_MONITOR_HTTP_TIMEOUT: '120'
           CT_MONITOR_ALERT_CMD: python3 scripts/mail_alert.py
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -43,7 +43,23 @@ jobs:
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           ALERT_TO: ${{ secrets.ALERT_TO }}
           ALERT_SUBJECT: 'CT-Monitor: neuer Cert für berkoc.com'
-        run: python3 ct_monitor.py
+        run: |
+          # crt.sh ist notorisch langsam → 3 Versuche mit Backoff
+          for attempt in 1 2 3; do
+            if python3 ct_monitor.py 2> /tmp/err.log; then
+              if grep -qE 'network error|HTTP [45]' /tmp/err.log; then
+                echo "Attempt $attempt: network issue, retry in $((attempt*30))s"
+                cat /tmp/err.log
+                sleep $((attempt * 30))
+                continue
+              fi
+              cat /tmp/err.log
+              exit 0
+            fi
+          done
+          echo "ct_monitor.py failed after 3 attempts"
+          cat /tmp/err.log
+          exit 1
 
       - name: Commit state changes
         run: |
