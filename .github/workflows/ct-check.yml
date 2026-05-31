@@ -1,0 +1,55 @@
+name: ct-check
+
+on:
+  schedule:
+    # Zwei Mal täglich UTC. Berlin (CEST = UTC+2): 08:15 → 06:15 UTC, 20:15 → 18:15 UTC.
+    - cron: '15 6 * * *'
+    - cron: '15 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ct-check
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run CT-Monitor
+        env:
+          CT_MONITOR_DOMAINS: berkoc.com
+          CT_MONITOR_STATE: ./state.json
+          CT_MONITOR_HTTP_TIMEOUT: '45'
+          CT_MONITOR_ALERT_CMD: python3 scripts/mail_alert.py
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+          ALERT_SUBJECT: 'CT-Monitor: neuer Cert für berkoc.com'
+        run: python3 ct_monitor.py
+
+      - name: Commit state changes
+        run: |
+          if [[ -n "$(git status --porcelain state.json)" ]]; then
+            git config user.name 'ct-monitor-bot'
+            git config user.email 'ct-monitor-bot@users.noreply.github.com'
+            git add state.json
+            git commit -m "state: refresh seen certs ($(date -u +%Y-%m-%dT%H:%MZ))"
+            git push
+          else
+            echo "no state diff"
+          fi
