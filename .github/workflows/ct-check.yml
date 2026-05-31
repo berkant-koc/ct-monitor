@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Prefer IPv4 (GH runner has flaky IPv6 egress to crt.sh)
+        run: echo 'precedence ::ffff:0:0/96 100' | sudo tee -a /etc/gai.conf
+
       - name: Run CT-Monitor
         env:
           CT_MONITOR_DOMAINS: berkoc.com
