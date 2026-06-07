@@ -44,17 +44,19 @@ jobs:
           ALERT_TO: ${{ secrets.ALERT_TO }}
           ALERT_SUBJECT: 'CT-Monitor: neuer Cert für berkoc.com'
         run: |
-          # crt.sh ist notorisch langsam → 3 Versuche mit Backoff
+          # crt.sh ist notorisch langsam/flaky -> 3 Versuche mit echtem Backoff.
+          # Backoff gehoert in den Fehler-Pfad (vorher faelschlich im Erfolgs-Zweig,
+          # dadurch 3 Retries ohne Pause -> transienter crt.sh-Blip = Fehl-Alarm).
           for attempt in 1 2 3; do
             if python3 ct_monitor.py 2> /tmp/err.log; then
-              if grep -qE 'network error|HTTP [45]' /tmp/err.log; then
-                echo "Attempt $attempt: network issue, retry in $((attempt*30))s"
-                cat /tmp/err.log
-                sleep $((attempt * 30))
-                continue
-              fi
               cat /tmp/err.log
               exit 0
+            fi
+            echo "Attempt $attempt failed:"
+            cat /tmp/err.log
+            if [ "$attempt" -lt 3 ]; then
+              echo "retry in $((attempt * 30))s"
+              sleep $((attempt * 30))
             fi
           done
           echo "ct_monitor.py failed after 3 attempts"
