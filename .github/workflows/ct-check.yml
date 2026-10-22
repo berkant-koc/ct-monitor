@@ -32,7 +32,7 @@ jobs:
 
       - name: Run CT-Monitor
         env:
-          CT_MONITOR_DOMAINS: berkoc.com
+          CT_MONITOR_DOMAINS: berkoc.com,koc-konstruktionen.de,koc-rv.de,siemens-nx.de,koc-konstruktion.de
           CT_MONITOR_STATE: ./state.json
           CT_MONITOR_HTTP_TIMEOUT: '120'
           CT_MONITOR_ALERT_CMD: python3 scripts/mail_alert.py
@@ -42,7 +42,7 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           ALERT_TO: ${{ secrets.ALERT_TO }}
-          ALERT_SUBJECT: 'CT-Monitor: neuer Cert für berkoc.com'
+          ALERT_SUBJECT: 'CT-Monitor: new certificate for a monitored domain'
         run: |
           # crt.sh ist notorisch langsam/flaky -> 3 Versuche mit echtem Backoff.
           # Backoff gehoert in den Fehler-Pfad (vorher faelschlich im Erfolgs-Zweig,

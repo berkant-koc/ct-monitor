@@ -147,7 +147,6 @@ def main() -> int:
     timeout = int(os.environ.get("CT_MONITOR_HTTP_TIMEOUT", DEFAULT_TIMEOUT))
 
     state = load_state(state_path)
-    seeded = bool(state)
     new_state: dict[str, list[int]] = {}
     new_alerts: dict[str, list[dict]] = {}
 
@@ -156,9 +155,13 @@ def main() -> int:
             certs = fetch_crt(domain, timeout)
         except urllib.error.HTTPError as e:
             print(f"[{domain}] crt.sh HTTP {e.code}, skipping", file=sys.stderr)
+            if domain in state:
+                new_state[domain] = state[domain]
             continue
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             print(f"[{domain}] network error: {e}", file=sys.stderr)
+            if domain in state:
+                new_state[domain] = state[domain]
             continue
 
         seen_ids: set[int] = set()
@@ -174,7 +177,9 @@ def main() -> int:
                 domain_new.append(normalise(entry))
 
         new_state[domain] = sorted(seen_ids)
-        if domain_new and seeded:
+        # Seeding is per domain: a domain seen for the first time is recorded
+        # silently, so adding a domain never floods the inbox with its history.
+        if domain_new and domain in state:
             new_alerts[domain] = domain_new
             print(f"[{domain}] {len(domain_new)} new", file=sys.stderr)
 
