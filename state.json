@@ -11,15 +11,26 @@
       28365310370
     ],
     "serials": [
-      "295809:059fbb8947560c0098d4303f95c09db52724",
-      "295809:065caba5bbda7f5100c6a61a1cf163e0a697",
-      "431054:05feab77f9da76a59dd85714a5eeca829ce0",
-      "431054:06edc477e6bc7349b2b7feb6097244a02456"
+      "5395c576242b3492d15b0cd37d219c6f5ae",
+      "5616b6e727207a40cf75fa579c5c9ecf9c8",
+      "59fbb8947560c0098d4303f95c09db52724",
+      "5d9c01e38b45967791bee5c0afdb60259a3",
+      "5feab77f9da76a59dd85714a5eeca829ce0",
+      "65caba5bbda7f5100c6a61a1cf163e0a697",
+      "6edc477e6bc7349b2b7feb6097244a02456"
+    ],
+    "sources": [
+      "certspotter",
+      "crtsh"
     ]
   },
   "koc-konstruktion.de": {
     "ids": [],
-    "serials": []
+    "serials": [],
+    "sources": [
+      "certspotter",
+      "crtsh"
+    ]
   },
   "koc-konstruktionen.de": {
     "ids": [
@@ -31,23 +42,42 @@
       29676867328
     ],
     "serials": [
-      "295817:05229d8140376f3a9f86b22a700731b54e48",
-      "432477:05ba201c1e4ceeb0aaec3c700e0aad59c334",
-      "432477:05f2085735f2ba579c557e5116322f7e3fa0"
+      "5229d8140376f3a9f86b22a700731b54e48",
+      "5ba201c1e4ceeb0aaec3c700e0aad59c334",
+      "5f2085735f2ba579c557e5116322f7e3fa0",
+      "63b095e2f9c1b2217fefe50d0fea1e5813d"
+    ],
+    "sources": [
+      "certspotter",
+      "crtsh"
     ]
   },
-  "koc-rv.de": [
-    26236236109,
-    26236244536,
-    26236286437,
-    26236302893,
-    27915270903,
-    27915282250,
-    29970679251,
-    30034611347
-  ],
+  "koc-rv.de": {
+    "ids": [
+      26236236109,
+      26236244536,
+      26236286437,
+      26236302893,
+      27915270903,
+      27915282250,
+      29970679251,
+      30034611347
+    ],
+    "serials": [
+      "6089c2395cb19f5d987c502db34f3a14801",
+      "6af517c703234ed5a47b501a0d503e601fb"
+    ],
+    "sources": [
+      "certspotter",
+      "crtsh"
+    ]
+  },
   "siemens-nx.de": {
     "ids": [],
-    "serials": []
+    "serials": [],
+    "sources": [
+      "certspotter",
+      "crtsh"
+    ]
   }
 }
