@@ -30,6 +30,7 @@ Typical systemd-timer line:
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import subprocess
@@ -182,6 +183,13 @@ def main() -> int:
             continue
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             print(f"[{domain}] network error: {e}", file=sys.stderr)
+            if domain in state:
+                new_state[domain] = state[domain]
+            continue
+        except (ValueError, http.client.HTTPException) as e:
+            # crt.sh sometimes answers 200 with an HTML error page or a cut-off
+            # body; skip the domain instead of failing the whole run.
+            print(f"[{domain}] unusable crt.sh response ({type(e).__name__}), skipping", file=sys.stderr)
             if domain in state:
                 new_state[domain] = state[domain]
             continue

@@ -67,6 +67,16 @@ def test_fetch_error_keeps_previous_state(monkeypatch, tmp_path):
     assert alerts == []
 
 
+def test_unusable_crtsh_response_skips_domain_and_keeps_state(monkeypatch, tmp_path):
+    known = {"ids": [1], "serials": [_key("1")]}
+    state, alerts = _run(monkeypatch, tmp_path, "a.com,b.com", {"a.com": known, "b.com": [5]},
+                         {"a.com": json.JSONDecodeError("Expecting value", "<html>", 0),
+                          "b.com": [_entry(5, "b.com")]})
+    assert state["a.com"] == known
+    assert state["b.com"] == {"ids": [5], "serials": [_key("5")]}
+    assert alerts == []
+
+
 def test_incomplete_crtsh_list_does_not_forget_or_realert(monkeypatch, tmp_path):
     known = {"ids": [1, 2], "serials": [_key("1"), _key("2")]}
     state, alerts = _run(monkeypatch, tmp_path, "a.com", {"a.com": known}, {"a.com": [_entry(1)]})
