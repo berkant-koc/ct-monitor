@@ -77,10 +77,16 @@ systemctl --user enable --now ct-monitor.timer
 
 ## State file
 
-Stores a per-domain set of crt.sh cert IDs already seen. Initial run
-seeds the file with no alert (otherwise you would get a flood for every
-existing cert). Loss of the file resets the seed and triggers a full
-re-alert on next run.
+Stores per domain the crt.sh IDs and the certificates (issuer + serial
+number) already seen. Initial run seeds the file with no alert (otherwise
+you would get a flood for every existing cert). Loss of the file resets
+the seed and triggers a full re-alert on next run.
+
+Known entries are never dropped, so an incomplete crt.sh response cannot
+make an old certificate alert again when it reappears. A second crt.sh
+entry for a known certificate (precertificate vs. final certificate, or a
+later re-index) does not alert either. State files from older versions
+(plain ID lists) are migrated silently on the next run.
 
 ## Output sample (alert body)
 
