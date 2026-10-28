@@ -2,9 +2,11 @@
 
 [![test](https://github.com/berkant-koc/ct-monitor/actions/workflows/test.yml/badge.svg)](https://github.com/berkant-koc/ct-monitor/actions/workflows/test.yml)
 
-Polls [crt.sh](https://crt.sh) for new TLS certificates issued for a list
-of domains you own, diffs against a local state file, and alerts you on
-any previously-unseen certificate before it appears in the wild.
+Polls [crt.sh](https://crt.sh) and [Cert Spotter](https://sslmate.com/certspotter/)
+for new TLS certificates issued for a list of domains you own, diffs against
+a local state file, and alerts you on any previously-unseen certificate
+before it appears in the wild. Two sources keep the watch going when one is
+down or lags behind; a certificate both report alerts once.
 
 Catches:
 
@@ -37,7 +39,11 @@ CT_MONITOR_ALERT_CMD="sendmail you@example.com" \
 | `CT_MONITOR_DOMAINS` | *(required)* | Comma-separated apex domains |
 | `CT_MONITOR_STATE` | `~/.ct-monitor-state.json` | Path to JSON state file |
 | `CT_MONITOR_ALERT_CMD` | *(stdout)* | Shell command that receives the alert body on stdin |
-| `CT_MONITOR_HTTP_TIMEOUT` | `30` | Seconds for crt.sh HTTP timeout |
+| `CT_MONITOR_HTTP_TIMEOUT` | `30` | Seconds per HTTP request |
+| `CT_MONITOR_SOURCES` | `crtsh,certspotter` | Which CT sources to query |
+
+Cert Spotter's free API allows about 10 subdomain queries per hour without
+an account, enough for a handful of domains polled twice a day.
 
 ## systemd-timer example
 
@@ -77,16 +83,19 @@ systemctl --user enable --now ct-monitor.timer
 
 ## State file
 
-Stores per domain the crt.sh IDs and the certificates (issuer + serial
-number) already seen. Initial run seeds the file with no alert (otherwise
-you would get a flood for every existing cert). Loss of the file resets
-the seed and triggers a full re-alert on next run.
+Stores per domain the crt.sh IDs, the serial numbers of the certificates
+already seen, and which sources have been seeded. Initial run seeds the
+file with no alert (otherwise you would get a flood for every existing
+cert); a source seen for the first time on a known domain is seeded the
+same way. Loss of the file resets the seed and triggers a full re-alert on
+next run.
 
-Known entries are never dropped, so an incomplete crt.sh response cannot
-make an old certificate alert again when it reappears. A second crt.sh
-entry for a known certificate (precertificate vs. final certificate, or a
-later re-index) does not alert either. State files from older versions
-(plain ID lists) are migrated silently on the next run.
+Known entries are never dropped, so an incomplete response cannot make an
+old certificate alert again when it reappears. A second crt.sh entry for a
+known certificate (precertificate vs. final certificate, or a later
+re-index) does not alert, and neither does the same certificate reported
+by both sources. State files from older versions (plain ID lists or
+issuer-prefixed serials) are migrated silently on the next run.
 
 ## Output sample (alert body)
 
