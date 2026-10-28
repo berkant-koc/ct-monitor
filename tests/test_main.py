@@ -135,6 +135,17 @@ def test_issuer_prefixed_keys_of_pr2_are_migrated(monkeypatch, tmp_path):
     assert alerts == []
 
 
+def test_new_crtsh_id_listed_before_its_known_twin_is_not_new(monkeypatch, tmp_path):
+    """State knows the certificate only by crt.sh ID (migrated while crt.sh was down), and crt.sh lists the
+    new ID first: the serial is taken from the known entry before anything is judged."""
+    known = {"ids": [29970679251], "serials": [], "sources": ["certspotter", "crtsh"]}
+    state, alerts = _run(monkeypatch, tmp_path, "koc-rv.de", {"koc-rv.de": known},
+                         {"koc-rv.de": [_entry(30034611347, serial=KOC_SERIAL),
+                                        _entry(29970679251, serial=KOC_SERIAL)]})
+    assert alerts == []
+    assert state["koc-rv.de"]["serials"] == [_key(KOC_SERIAL)]
+
+
 def test_new_certificate_with_two_crtsh_entries_alerts_once(monkeypatch, tmp_path):
     state, alerts = _run(monkeypatch, tmp_path, "a.com", {"a.com": _st([1], ["1"])},
                          {"a.com": [_entry(1), _entry(10, serial="aa"), _entry(11, serial="aa")]})

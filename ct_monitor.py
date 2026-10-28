@@ -302,11 +302,13 @@ def main() -> int:
             continue
 
         known_ids, known_keys, seeded = domain_state(state.get(domain))
-        if known_keys is None:
-            # The oldest state files hold crt.sh IDs only: every certificate we
-            # already had an ID for is known by its serial from now on.
-            known_keys = {canonical_serial(e.get("serial_number"))
-                          for e in results.get("crtsh", []) if e.get("id") in known_ids} - {None}
+        # Every crt.sh entry we already know by ID tells us its certificate's
+        # serial. Record those first, so a second ID of the same certificate is
+        # never new, whatever order crt.sh lists them in. This also fills in the
+        # serials of ID-only state written while crt.sh was unreachable.
+        known_keys = (known_keys or set()) | ({canonical_serial(e.get("serial_number"))
+                                               for e in results.get("crtsh", [])
+                                               if e.get("id") in known_ids} - {None})
         ids, keys = set(known_ids), set(known_keys)
         domain_new: list[dict] = []
 
