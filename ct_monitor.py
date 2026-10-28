@@ -2,10 +2,11 @@
 """
 Certificate Transparency monitor for self-hosted domains.
 
-Polls crt.sh for the configured domains, diffs against locally cached
-known-cert IDs, and dispatches an alert when a previously unseen cert
-appears in any public CT log. Catches silently issued phishing certs
-or registrar/CA compromise before the cert goes live.
+Polls crt.sh for the configured domains, diffs against the locally cached
+known certificates (crt.sh IDs plus issuer and serial number), and
+dispatches an alert when a previously unseen cert appears in any public
+CT log. Catches silently issued phishing certs or registrar/CA compromise
+before the cert goes live.
 
 Cron / systemd-timer friendly: idempotent, exits 0, no stdout when
 nothing is new.
@@ -68,6 +69,27 @@ def normalise(entry: dict) -> dict:
         "not_after": entry.get("not_after"),
         "serial": entry.get("serial_number"),
     }
+
+
+def cert_key(entry: dict) -> str | None:
+    """Identify a certificate across crt.sh entries: issuer plus serial number."""
+    serial = entry.get("serial_number")
+    if not serial:
+        return None
+    return f"{entry.get('issuer_ca_id')}:{serial.lower()}"
+
+
+def domain_state(raw) -> tuple[set[int], set[str] | None]:
+    """Known crt.sh IDs and certificate keys of one domain.
+
+    Accepts the current {"ids": [...], "serials": [...]} form and the older
+    plain list of IDs, for which the certificate keys are unknown (None).
+    """
+    if isinstance(raw, dict):
+        return set(raw.get("ids", [])), set(raw.get("serials", []))
+    if isinstance(raw, list):
+        return set(raw), None
+    return set(), set()
 
 
 def load_state(path: Path) -> dict:
@@ -147,7 +169,7 @@ def main() -> int:
     timeout = int(os.environ.get("CT_MONITOR_HTTP_TIMEOUT", DEFAULT_TIMEOUT))
 
     state = load_state(state_path)
-    new_state: dict[str, list[int]] = {}
+    new_state: dict = {}
     new_alerts: dict[str, list[dict]] = {}
 
     for domain in domains:
@@ -164,19 +186,31 @@ def main() -> int:
                 new_state[domain] = state[domain]
             continue
 
-        seen_ids: set[int] = set()
+        known_ids, known_keys = domain_state(state.get(domain))
+        if known_keys is None:
+            # Older state files hold crt.sh IDs only: every certificate we
+            # already had an ID for is known by issuer + serial from now on.
+            known_keys = {cert_key(e) for e in certs if e.get("id") in known_ids} - {None}
+        ids, keys = set(known_ids), set(known_keys)
         domain_new: list[dict] = []
-        known = set(state.get(domain, []))
 
         for entry in certs:
             cid = entry.get("id")
             if cid is None:
                 continue
-            seen_ids.add(cid)
-            if cid not in known:
+            key = cert_key(entry)
+            # crt.sh lists a precertificate and its final certificate under two
+            # IDs and may index a certificate again later; a known issuer +
+            # serial is the same certificate, not a new one.
+            if cid not in ids and (key is None or key not in keys):
                 domain_new.append(normalise(entry))
+            ids.add(cid)
+            if key:
+                keys.add(key)
 
-        new_state[domain] = sorted(seen_ids)
+        # Never forget: crt.sh sometimes returns an incomplete list, and an ID
+        # dropped from the state would alert again when it reappears.
+        new_state[domain] = {"ids": sorted(ids), "serials": sorted(keys)}
         # Seeding is per domain: a domain seen for the first time is recorded
         # silently, so adding a domain never floods the inbox with its history.
         if domain_new and domain in state:
